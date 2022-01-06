@@ -75,7 +75,6 @@ class ADATTransmitterOwn(Elaboratable):
         adat = m.d.adat
         comb = m.d.comb
 
-
         m.submodules.transmit_fifo = transmit_fifo = AsyncFIFO(width=25, depth=self._fifo_depth, w_domain="sync", r_domain="adat")
 
         # needed for input processing
@@ -89,6 +88,10 @@ class ADATTransmitterOwn(Elaboratable):
         transmit_counter = Signal(5)
         transmit_size = Signal(5)
 
+        # 4b/5b coding: Every 24 bit channel has 6 nibbles.
+        # 1 bit before the sync pad and one bit before the user data nibble
+        filler_bits = [Const(1, 1) for _ in range(7)]
+
         comb += [
             self.ready_out.eq(transmit_fifo.w_rdy),
             self.fifo_level_out.eq(transmit_fifo.w_level),
@@ -97,23 +100,12 @@ class ADATTransmitterOwn(Elaboratable):
             self.underflow_out.eq(0),
         ]
 
-        # 4b/5b coding: Every 24 bit channel has 6 nibbles.
-        # 1 bit before the sync pad and one bit before the user data nibble
-        filler_bits = [Const(1, 1) for _ in range(7)]
-        sync_pad = Const(0, 10)
-
         #
         #
         # Fill the Fifo in sync domain
         #
         #
-
-
-        sync += [
-           # user_bits.eq(0),
-          #  user_bits_set.eq(0),
-          transmit_fifo.w_en.eq(0) # make sure, w_en is only asserted when explicitly strobed
-        ]
+        sync += transmit_fifo.w_en.eq(0) # make sure, w_en is only asserted when explicitly strobed
 
         with m.If(user_bits_set):
             sync += [
@@ -123,6 +115,7 @@ class ADATTransmitterOwn(Elaboratable):
 
             sync += user_bits_set.eq(0)
             comb += self.ready_out.eq(transmit_fifo.w_rdy)
+
 
         with m.Else():
             with m.If(self.valid_in): #& self.ready_out needed?
@@ -158,7 +151,6 @@ class ADATTransmitterOwn(Elaboratable):
                 with m.If(transmit_fifo.r_data[24] == 0):
                     adat += [
                         transmit_size.eq(30),
-                        #transmitted_frame.eq(Cat(1 + (transmit_fifo.r_data[:5] << 17))),
                         transmitted_frame.eq(Cat(zip(filler_bits, list(self.chunks(transmit_fifo.r_data[:25], 4))))),
                         transmit_fifo.r_en.eq(1)
                     ]
@@ -166,8 +158,6 @@ class ADATTransmitterOwn(Elaboratable):
                     adat += [
                         transmit_size.eq(16),
                         transmitted_frame.eq(Cat(1 + (transmit_fifo.r_data[:5] << 11))),
-                        #transmitted_frame.eq(Cat(zip(filler_bits, list(self.chunks(transmit_fifo.r_data[:25], 4))))),
-                        #transmitted_frame.eq(0b1111),
                         transmit_fifo.r_en.eq(1)
                     ]
             with m.Else():
