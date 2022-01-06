@@ -1,0 +1,42 @@
+[*]
+[*] GTKWave Analyzer v3.3.106 (w)1999-2020 BSI
+[*] Thu Jan  6 13:03:06 2022
+[*]
+[dumpfile] "/home/rouven/Computer/Coden/Audio/adat-core/tests/transmitter_own-smoke-test-48000.vcd"
+[dumpfile_mtime] "Thu Jan  6 12:57:08 2022"
+[dumpfile_size] 384360
+[savefile] "/home/rouven/Computer/Coden/Audio/adat-core/tests/transmitter_own-smoke-test-48000.gtkw"
+[timestart] 33129000
+[size] 1850 1011
+[pos] -603 -241
+*-20.000000 36450000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] bench.
+[treeopen] bench.top.
+[treeopen] bench.top.transmit_fifo.
+[sst_width] 227
+[signals_width] 271
+[sst_expanded] 1
+[sst_vpaned_height] 284
+@24
+bench.top.adat_clk
+@28
+bench.top.clk
+@22
+bench.top.sample_in[23:0]
+@28
+bench.top.user_data_in[3:0]
+bench.top.valid_in
+bench.top.last_in
+bench.top.ready_out
+[color] 1
+bench.top.adat_out
+@24
+bench.top.fifo_level_out[8:0]
+@28
+[color] 1
+bench.top.underflow_out
+bench.top.user_bits[3:0]
+@29
+bench.top.user_bits_set
+[pattern_trace] 1
+[pattern_trace] 0
