@@ -60,7 +60,7 @@ class ADATTransmitterOwn(Elaboratable):
         self.valid_in       = Signal()
         self.ready_out      = Signal()
         self.last_in        = Signal()
-        self.fifo_level_out = Signal(range(fifo_depth))
+        self.fifo_level_out = Signal(range(fifo_depth+1))
         self.underflow_out  = Signal()
 
     @staticmethod
@@ -118,7 +118,7 @@ class ADATTransmitterOwn(Elaboratable):
 
 
         with m.Else():
-            with m.If(self.valid_in): #& self.ready_out needed?
+            with m.If(self.valid_in & transmit_fifo.w_rdy): #& self.ready_out needed?
                 sync += [
                     transmit_fifo.w_data.eq(self.sample_in),
                     transmit_fifo.w_en.eq(1)
@@ -157,10 +157,11 @@ class ADATTransmitterOwn(Elaboratable):
                 with m.Else():
                     adat += [
                         transmit_size.eq(16),
-                        transmitted_frame.eq(Cat(1 + (transmit_fifo.r_data[:5] << 11))),
+                        transmitted_frame.eq((1 << 11)|Cat(1 + (transmit_fifo.r_data[:5] << 12))),
                         transmit_fifo.r_en.eq(1)
                     ]
             with m.Else():
                 comb += self.underflow_out.eq(1)
+                adat += transmitted_frame.eq(0x00) # for debugging to stop adat output
 
         return m
