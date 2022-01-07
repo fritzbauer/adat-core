@@ -1,6 +1,5 @@
 * nibbles erst in adat domain erstellen --> spart fifo width
 * fifo_level_out --> geänderte levels
 * fifo width 25: MSB indicates last frame; channels müssen in richtiger Reihenfolge gesendet werden
-* ready_out ist noch buggy
 * sync pattern erst am Ende, gemäß https://ackspace.nl/wiki/ADAT_project
 * test-bench mit 50MHz?

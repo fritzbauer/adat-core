@@ -109,7 +109,8 @@ class ADATTransmitterOwn(Elaboratable):
 
         with m.If(user_bits_set):
             sync += [
-                transmit_fifo.w_data.eq((1 << 24) | user_bits), #TODO: reverse?
+                #transmit_fifo.w_data.eq((1 << 24) | Cat(reversed(user_bits))), #TODO: reverse?
+                transmit_fifo.w_data.eq((1 << 24) | user_bits),
                 transmit_fifo.w_en.eq(1)
             ]
 
@@ -137,31 +138,35 @@ class ADATTransmitterOwn(Elaboratable):
         #
         #
         adat += [
-            transmit_counter.eq(transmit_counter + 1),
+            transmit_counter.eq(transmit_counter - 1),
             transmit_fifo.r_en.eq(0),
         ]
 
         # initialize transmit_size once
-        with m.If(transmit_size == 0):
-            adat += transmit_size.eq(30)
+        #with m.If(transmit_size == 0):
+        #    adat += transmit_size.eq(30)
 
-        with m.If(transmit_counter == (transmit_size - 1)):
+        with m.If(transmit_counter == 0):
             adat += transmit_counter.eq(0)
             with m.If(transmit_fifo.r_rdy):
                 with m.If(transmit_fifo.r_data[24] == 0):
                     adat += [
-                        transmit_size.eq(30),
-                        transmitted_frame.eq(Cat(zip(filler_bits, list(self.chunks(transmit_fifo.r_data[:25], 4))))),
+                        transmit_counter.eq(29),
+                        #transmit_size.eq(30),
+                        transmitted_frame.eq(Cat(zip(list(self.chunks(transmit_fifo.r_data[:25], 4)), filler_bits))),
                         transmit_fifo.r_en.eq(1)
                     ]
                 with m.Else():
                     adat += [
-                        transmit_size.eq(16),
-                        transmitted_frame.eq((1 << 11)|Cat(1 + (transmit_fifo.r_data[:5] << 12))),
+                        transmit_counter.eq(15),
+                        #transmit_size.eq(16),
+                        #transmitted_frame.eq((1 << 11) | Cat(1 + (transmit_fifo.r_data[:5] << 12))),
+                        transmitted_frame.eq((1 << 15) | (1 << 4) | Cat(transmit_fifo.r_data[:5])),
                         transmit_fifo.r_en.eq(1)
                     ]
             with m.Else():
                 comb += self.underflow_out.eq(1)
+                transmit_counter.eq(4),
                 adat += transmitted_frame.eq(0x00) # for debugging to stop adat output
 
         return m
