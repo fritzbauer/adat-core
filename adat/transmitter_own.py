@@ -86,7 +86,6 @@ class ADATTransmitterOwn(Elaboratable):
         transmitted_frame_bits = Array([Signal(name=f"frame_bit{b}") for b in range(30)])
         transmitted_frame = Cat(transmitted_frame_bits)
         transmit_counter = Signal(5)
-        transmit_size = Signal(5)
 
         # 4b/5b coding: Every 24 bit channel has 6 nibbles.
         # 1 bit before the sync pad and one bit before the user data nibble
@@ -97,7 +96,7 @@ class ADATTransmitterOwn(Elaboratable):
             self.fifo_level_out.eq(transmit_fifo.w_level),
             self.adat_out.eq(nrzi_encoder.nrzi_out),
             nrzi_encoder.data_in.eq(transmitted_frame_bits[transmit_counter]),
-            self.underflow_out.eq(0),
+            self.underflow_out.eq(0)
         ]
 
         #
@@ -109,17 +108,16 @@ class ADATTransmitterOwn(Elaboratable):
 
         with m.If(user_bits_set):
             sync += [
-                #transmit_fifo.w_data.eq((1 << 24) | Cat(reversed(user_bits))), #TODO: reverse?
                 transmit_fifo.w_data.eq((1 << 24) | user_bits),
-                transmit_fifo.w_en.eq(1)
+                transmit_fifo.w_en.eq(1),
+                user_bits_set.eq(0)
             ]
 
-            sync += user_bits_set.eq(0)
             comb += self.ready_out.eq(transmit_fifo.w_rdy)
 
 
         with m.Else():
-            with m.If(self.valid_in & transmit_fifo.w_rdy): #& self.ready_out needed?
+            with m.If(self.valid_in & transmit_fifo.w_rdy):
                 sync += [
                     transmit_fifo.w_data.eq(self.sample_in),
                     transmit_fifo.w_en.eq(1)
@@ -142,31 +140,24 @@ class ADATTransmitterOwn(Elaboratable):
             transmit_fifo.r_en.eq(0),
         ]
 
-        # initialize transmit_size once
-        #with m.If(transmit_size == 0):
-        #    adat += transmit_size.eq(30)
-
         with m.If(transmit_counter == 0):
             adat += transmit_counter.eq(0)
             with m.If(transmit_fifo.r_rdy):
                 with m.If(transmit_fifo.r_data[24] == 0):
                     adat += [
                         transmit_counter.eq(29),
-                        #transmit_size.eq(30),
                         transmitted_frame.eq(Cat(zip(list(self.chunks(transmit_fifo.r_data[:25], 4)), filler_bits))),
                         transmit_fifo.r_en.eq(1)
                     ]
                 with m.Else():
                     adat += [
                         transmit_counter.eq(15),
-                        #transmit_size.eq(16),
-                        #transmitted_frame.eq((1 << 11) | Cat(1 + (transmit_fifo.r_data[:5] << 12))),
                         transmitted_frame.eq((1 << 15) | (1 << 4) | Cat(transmit_fifo.r_data[:5])),
                         transmit_fifo.r_en.eq(1)
                     ]
             with m.Else():
                 comb += self.underflow_out.eq(1)
-                transmit_counter.eq(4),
-                adat += transmitted_frame.eq(0x00) # for debugging to stop adat output
+                transmit_counter.eq(4), #start transmitting rather sooner than later
+                adat += transmitted_frame.eq(0x00) # for debugging to explicitly stop adat output
 
         return m
